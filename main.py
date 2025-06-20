@@ -5,7 +5,11 @@ from transformers import AutoTokenizer
 from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry import trace
 import time
-from telemetry import configure_telemetry
+import logging
+from telemetry import configure_telemetry, configure_logging
+
+
+logger = logging.getLogger(__name__)
 
 class PromptInput(BaseModel):
     prompt: str
@@ -24,6 +28,7 @@ app.add_middleware(
 
 
 configure_telemetry()
+configure_logging()
 
 FastAPIInstrumentor.instrument_app(app)
 tracer = trace.get_tracer(__name__)
@@ -32,6 +37,7 @@ tokenizer = AutoTokenizer.from_pretrained("google/flan-t5-base")
 
 @app.post("/generate")
 async def generate_text(data: PromptInput):
+    logger.info("Received request", extra={"prompt": data.prompt})
     with tracer.start_as_current_span("generate_text") as span:
         start = time.time()
         result = llm(data.prompt, max_new_tokens=100)[0]["generated_text"]
@@ -48,5 +54,14 @@ async def generate_text(data: PromptInput):
         span.set_attribute("llm.tokens.input", input_tokens)
         span.set_attribute("llm.tokens.output", output_tokens)
         span.set_attribute("llm.tokens.total", total_tokens)
-
+        logger.info(
+            "Response generated",
+            extra={
+                "latency_ms": int(duration * 1000),
+                "response": result,
+                "tokens.input": input_tokens,
+                "tokens.output": output_tokens,
+                "tokens.total": total_tokens,
+            }
+        )
         return {"response": result}
