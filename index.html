@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>LLM Chatbot</title>
+  <style>
+    body { font-family: sans-serif; padding: 2rem; max-width: 600px; margin: auto; }
+    #chatbox { border: 1px solid #ccc; padding: 1rem; height: 300px; overflow-y: auto; margin-bottom: 1rem; }
+    .user { color: blue; }
+    .bot { color: green; }
+    .msg { margin-bottom: 1em; }
+  </style>
+</head>
+<body>
+
+  <h2>Chat with the LLM</h2>
+
+  <div id="chatbox"></div>
+
+  <form id="chat-form">
+    <input type="text" id="user-input" placeholder="Type your prompt..." required style="width: 80%;">
+    <button type="submit">Send</button>
+  </form>
+
+  <script>
+    const form = document.getElementById('chat-form');
+    const input = document.getElementById('user-input');
+    const chatbox = document.getElementById('chatbox');
+
+    function appendMessage(role, text) {
+      const div = document.createElement('div');
+      div.classList.add('msg', role);
+      div.innerHTML = `<strong>${role === 'user' ? 'You' : 'LLM'}:</strong> ${text}`;
+      chatbox.appendChild(div);
+      chatbox.scrollTop = chatbox.scrollHeight;
+    }
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const prompt = input.value.trim();
+      if (!prompt) return;
+
+      appendMessage('user', prompt);
+      input.value = '';
+
+      try {
+        const res = await fetch('http://127.0.0.1:8000/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt })
+        });
+
+        const data = await res.json();
+        appendMessage('bot', data.response);
+      } catch (err) {
+        appendMessage('bot', 'Error: Could not connect to backend.');
+        console.error(err);
+      }
+    });
+  </script>
+
+</body>
+</html>

@@ -12,6 +12,17 @@ class PromptInput(BaseModel):
 
 app = FastAPI()
 
+from fastapi.middleware.cors import CORSMiddleware
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], 
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
 configure_telemetry()
 
 FastAPIInstrumentor.instrument_app(app)
